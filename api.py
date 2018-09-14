@@ -24,6 +24,17 @@ class User(db.Model):
     password = db.Column(db.String(80))
     admin = db.Column(db.Boolean)
 
+class Ponto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(50), unique=True)
+    reason = db.Column(db.String(100))
+    status = db.Column(db.String(10))
+    user_id = db.Column(db.String(50))
+    jamal_id = db.Column(db.String(50))
+    votes = db.Column(db.Integer)
+    points = db.Column(db.Integer) 
+
+
 def token_required(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
@@ -59,6 +70,13 @@ def create_user(current_user):
     db.session.commit()
     return jsonify({'message': 'Novo Jamal criado'})
 
+@app.route('/ponto', methods=['POST'])
+def create_ponto():
+    data = request.get_json()
+    new_ponto = Ponto(public_id=str(uuid.uuid4()), reason=data['reason'], status='pendent', user_id=data['user_id'], jamal_id=data['jamal_id'], votes=1, points=data['points'])
+    db.session.add(new_ponto)
+    return jsonify({'message': 'Novo ponto criado, no aguardo da votação'})
+
 @app.route('/user', methods=['GET'])
 @token_required
 def get_all_users(current_user):
@@ -74,6 +92,16 @@ def get_all_users(current_user):
         user_data['admin'] = user.admin
         output.append(user_data)
     return jsonify({'jamals': output  })
+
+@app.route('/pontos', methods=['GET'])
+def get_all_pontos():
+    pontos = Ponto.query.all()
+    output = []
+    for ponto in pontos:
+        ponto_data = {}
+        ponto_data['reason'] = ponto.reason
+        output.append(ponto_data)
+    return jsonify({'pontos': output})
 
 @app.route('/user/<public_id>', methods=['GET'])
 @token_required
