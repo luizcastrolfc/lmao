@@ -73,11 +73,12 @@ def create_user(current_user):
 @app.route('/ponto', methods=['POST'])
 def create_ponto():
     data = request.get_json()
-    new_ponto = Ponto(public_id=str(uuid.uuid4()), reason=data['reason'], status='pendent', user_id=data['user_id'], jamal_id=data['jamal_id'], votes=1, points=data['points'])
+    new_ponto = Ponto(public_id=str(uuid.uuid4()), reason=data['reason'], status='pendente', user_id=data['user_id'], jamal_id=data['jamal_id'], votes=1, points=data['points'])
     db.session.add(new_ponto)
+    db.session.commit()
     return jsonify({'message': 'Novo ponto criado, no aguardo da votação'})
 
-@app.route('/user', methods=['GET'])
+@app.route('/users', methods=['GET'])
 @token_required
 def get_all_users(current_user):
     if not current_user.admin:
@@ -97,6 +98,8 @@ def get_all_users(current_user):
 def get_all_pontos():
     pontos = Ponto.query.all()
     output = []
+    if not pontos:
+        return jsonify({'message': 'Não tem ponto nesse jamal ou jamal com esse id'})
     for ponto in pontos:
         ponto_data = {}
         ponto_data['reason'] = ponto.reason
@@ -119,6 +122,24 @@ def get_one_user(current_user, public_id):
     user_data['admin'] = user.admin
     
     return jsonify({'jamal': user_data})
+
+@app.route('/pontos/<public_id>', methods=['GET'])
+def get_one_user_pontos(public_id):
+
+    pontos = Ponto.query.filter_by(jamal_id=public_id)
+    if not pontos:
+        return jsonify({'message': 'Não tem ponto nesse jamal ou jamal com esse id'})
+    output = []
+    for ponto in pontos:
+        ponto_data = {}
+        ponto_data['reason'] = ponto.reason
+        ponto_data['points'] = ponto.points
+        ponto_data['status'] = ponto.status
+        ponto_data['votes'] = ponto.votes
+        ponto_data['user_id'] = ponto.user_id
+        ponto_data['jamal_id'] = ponto.jamal_id
+        output.append(ponto_data)
+    return jsonify({'pontos': output})
 
 @app.route('/user/<public_id>', methods=['DELETE'])
 @token_required
